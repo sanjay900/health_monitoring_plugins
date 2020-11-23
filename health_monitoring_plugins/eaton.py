@@ -108,6 +108,10 @@ GENERIC_STATES = {
                                          "unit": "deg C",
                                          "message": "external environment temperature",
                                          "indexing": INDEX_SCALAR},
+    "external_environment_humidity": {"oid": ".1.3.6.1.4.1.534.1.6.6.0",
+                                         "unit": "%",
+                                         "message": "external environment humidity",
+                                         "indexing": INDEX_SCALAR},
 }
 
 

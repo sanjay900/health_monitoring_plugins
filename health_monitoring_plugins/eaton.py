@@ -49,67 +49,80 @@ GENERIC_STATES = {
 
     "on_battery": {"oid": ".1.3.6.1.2.1.33.1.2.2.0",
                    "unit": "s",
+                   "unitG": "s",
                    "message": "time running on battery",
                    "indexing": INDEX_SCALAR},
 
     "remaining_battery_time": {"oid": ".1.3.6.1.2.1.33.1.2.3.0",
                                "unit": "min",
+                               "unitG": "",
                                "message": "time remaining on battery",
                                "indexing": INDEX_SCALAR},
 
     "input_frequency": {"oid": ".1.3.6.1.2.1.33.1.3.3.1.2",
                         "unit": "Hz",
+                        "unitG": "",
                         "message": "input frequency",
                         "indexing": INDEX_INOUT_LINES,
                         "converter": calc_frequency},
 
     "input_voltage": {"oid": ".1.3.6.1.2.1.33.1.3.3.1.3",
-                      "unit": "VAC",
+                      "unit": "V",
+                      "unitG": "",
                       "message": "input voltage",
                       "indexing": INDEX_INOUT_LINES},
 
     "output_voltage": {"oid": ".1.3.6.1.2.1.33.1.4.4.1.2",
-                       "unit": "VAC",
+                       "unit": "V",
+                       "unitG": "",
                        "message": "output voltage",
                        "indexing": INDEX_INOUT_LINES},
 
     "output_current": {"oid": ".1.3.6.1.2.1.33.1.4.4.1.3",
                        "unit": "A",
+                       "unitG": "",
                        "message": "output current",
                        "indexing": INDEX_INOUT_LINES,
                        "converter": calc_output_current},
 
     "output_power": {"oid": ".1.3.6.1.2.1.33.1.4.4.1.4",
                      "unit": "W",
+                     "unitG": "",
                      "message": "output power",
                      "indexing": INDEX_INOUT_LINES},
 
     "output_load": {"oid": ".1.3.6.1.2.1.33.1.4.4.1.5",
                     "unit": "%",
+                    "unitG": "%",
                     "message": "output load",
                     "indexing": INDEX_INOUT_LINES},
 
     "alarms": {"oid": ".1.3.6.1.2.1.33.1.6.1.0",
                "unit": "",
+               "unitG": "",
                "message": "active alarms",
                "indexing": INDEX_SCALAR},
 
     "battery_capacity": {"oid": ".1.3.6.1.4.1.534.1.2.4.0",
                          "unit": "%",
+                         "unitG": "%",
                          "message": "remaining battery capacity",
                          "indexing": INDEX_SCALAR},
 
     "environment_temperature": {"oid": ".1.3.6.1.4.1.534.1.6.1.0",
                                 "unit": "deg C",
+                                "unitG": "",
                                 "message": "environment temperature",
                                 "indexing": INDEX_SCALAR},
 
     "external_environment_temperature": {"oid": ".1.3.6.1.4.1.534.1.6.5.0",
                                          "unit": "deg C",
+                                         "unitG": "",
                                          "message": "external environment temperature",
                                          "indexing": INDEX_SCALAR},
     "external_environment_humidity": {"oid": ".1.3.6.1.4.1.534.1.6.6.0",
                                          "unit": "%",
+                                         "unitG": "%",
                                          "message": "external environment humidity",
                                          "indexing": INDEX_SCALAR},
 }
@@ -148,10 +161,11 @@ class EatonUPS(object):
             metric_name = (self.helper.options.type + suffix).format(index)
             metric_message = (GENERIC_STATES[self.helper.options.type]["message"] + suffix).format(index)
             uom = GENERIC_STATES[self.helper.options.type]["unit"]
+            uomg = GENERIC_STATES[self.helper.options.type]["unitG"]
             self.helper.add_metric(
                 label=metric_name,
                 value=value,
-                uom=uom)
+                uom=uomg)
             if self.helper.options.type == "alarms":
                 if value != "0":
                     self.helper.status(critical)
@@ -167,13 +181,13 @@ class EatonUPS(object):
         if indexing == INDEX_SCALAR:
             values = []
             value = self.helper.get_snmp_value_or_exit(
-                self.session, self.helper, GENERIC_STATES[self.helper.options.type]["oid"])
+                self.session, self.helper, GENERIC_STATES[self.helper.options.type]["oid"]).decode('utf-8')
             if value:
                 values.append(value)
         elif indexing == INDEX_INOUT_LINES:
-            values = self.helper.walk_snmp_values_or_exit(
+            values = list(map(lambda x: x.decode('utf-8'), self.helper.walk_snmp_values_or_exit(
                 self.session, self.helper, GENERIC_STATES[self.helper.options.type]["oid"],
-                GENERIC_STATES[self.helper.options.type]["message"])
+                GENERIC_STATES[self.helper.options.type]["message"])))
             values = values[:MAX_INOUT_LINES_ENTRIES]
         if not values:
             self.helper.exit(summary="No response from device ", exit_code=unknown,
